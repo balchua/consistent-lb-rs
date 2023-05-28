@@ -8,13 +8,17 @@ rust-version = "1.68"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-actix-web = "4"
 chrono = "0.4.24"
 env_logger = "0.10.0"
+future-utils = "0.12.1"
 hash_ring = "0.2.0"
+hyper = { version = "0.14.26", features = ["full"] }
 log = "0.4.17"
+random-string = "1.0.0"
+reqwest = "0.11.18"
 serde =   { version = "1.0.160", features = ["derive"] }
 serde_json = "1.0.96"
+tokio = { version = "1", features = ["full"] }
 tracing = "0.1.37"
 tracing-subscriber = "0.3.16"
  
