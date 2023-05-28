@@ -9,16 +9,7 @@ pub struct Consistent {
 }
 
 impl Consistent {
-    pub fn new(replicas: isize) -> Consistent {
-        let mut nodes: Vec<NodeInfo> = Vec::new();
-        nodes.push(NodeInfo {
-            host: "localhost",
-            port: 9000,
-        });
-        nodes.push(NodeInfo {
-            host: "localhost",
-            port: 8000,
-        });
+    pub fn new(replicas: isize, nodes: Vec<NodeInfo>) -> Consistent {
         let hash_ring = HashRing::new(nodes, replicas);
         let previous = HashMap::new();
         Consistent {
