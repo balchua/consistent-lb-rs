@@ -1,42 +1,33 @@
-use actix_web::{web, App, HttpServer};
+use std::sync::Arc;
 
-use chrono::Local;
-use env_logger::Builder;
-use log::LevelFilter;
-use routes::consistent_handler::pick;
+use hyper::Server;
 use service::consistent::Consistent;
-use std::io::Write;
 
-mod routes;
+use crate::handlers::proxy::MakeSvc;
+
+mod handlers;
 mod service;
 
-struct ConsistentHash {
-    consistent: Consistent, // <- Mutex is necessary to mutate safely across threads
+#[tokio::main]
+async fn main() {
+    let addr = ([127, 0, 0, 1], 3000).into();
+    let c = Consistent::new(10);
+    let server = Server::bind(&addr)
+        .http2_only(true)
+        .serve(MakeSvc { c: Arc::new(c) });
+
+    println!("Listening on http://{}", addr);
+    // And now add a graceful shutdown signal...
+    let graceful = server.with_graceful_shutdown(shutdown_signal());
+    // Run this server for... forever!
+    if let Err(e) = graceful.await {
+        eprintln!("server error: {}", e);
+    }
 }
-#[actix_web::main]
-async fn main() -> std::io::Result<()> {
-    Builder::new()
-        .format(|buf, record| {
-            writeln!(
-                buf,
-                "{} [{}] - {}",
-                Local::now().format("%Y-%m-%dT%H:%M:%S"),
-                record.level(),
-                record.args()
-            )
-        })
-        .filter(None, LevelFilter::Info)
-        .init();
-    let consistent = Consistent::new(10);
-    let c = web::Data::new(ConsistentHash {
-        consistent: consistent,
-    });
-    HttpServer::new(move || {
-        App::new()
-            .app_data(c.clone()) // <- register the created data
-            .service(pick)
-    })
-    .bind(("127.0.0.1", 8080))?
-    .run()
-    .await
+
+async fn shutdown_signal() {
+    // Wait for the CTRL+C signal
+    tokio::signal::ctrl_c()
+        .await
+        .expect("failed to install CTRL+C signal handler");
 }

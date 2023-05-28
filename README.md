@@ -1,11 +1,12 @@
 # Consistent Hash LB
 
-A simple load balancer implementing consistent hash.
+A simple h2 load balancer implementing consistent hash.
+The Header must contain `x-request_key"`.
 
 ## Project Dependencies
 
 This project uses the following:
-* actix-web
+* hyper
 * hash_ring
 
 ## 

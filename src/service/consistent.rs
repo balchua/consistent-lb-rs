@@ -1,6 +1,7 @@
 use std::collections::{HashMap, HashSet};
 
 use hash_ring::{HashRing, NodeInfo};
+
 pub struct Consistent {
     nodeset: HashSet<NodeInfo>,
     ring: HashRing<NodeInfo>,
@@ -12,27 +13,11 @@ impl Consistent {
         let mut nodes: Vec<NodeInfo> = Vec::new();
         nodes.push(NodeInfo {
             host: "localhost",
-            port: 15324,
+            port: 9000,
         });
         nodes.push(NodeInfo {
             host: "localhost",
-            port: 15325,
-        });
-        nodes.push(NodeInfo {
-            host: "localhost",
-            port: 15326,
-        });
-        nodes.push(NodeInfo {
-            host: "localhost",
-            port: 15327,
-        });
-        nodes.push(NodeInfo {
-            host: "localhost",
-            port: 15328,
-        });
-        nodes.push(NodeInfo {
-            host: "localhost",
-            port: 15329,
+            port: 8000,
         });
         let hash_ring = HashRing::new(nodes, replicas);
         let previous = HashMap::new();
