@@ -11,6 +11,7 @@ rust-version = "1.68"
 chrono = "0.4.24"
 env_logger = "0.10.0"
 future-utils = "0.12.1"
+futures = "0.3.28"
 hash_ring = "0.2.0"
 hyper = { version = "0.14.26", features = ["full"] }
 log = "0.4.17"

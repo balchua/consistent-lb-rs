@@ -6,11 +6,14 @@ use std::{
     time::Duration,
 };
 
-use hyper::{service::Service, Body, Client, Request, Response, Version};
+use hyper::{
+    client::HttpConnector, http::request::Parts, service::Service, Body, Client, Request, Response,
+    Version,
+};
 
 use crate::service::consistent::Consistent;
 
-const REQUEST_KEY: &str = "x-request_key";
+const REQUEST_KEY: &str = "x-request-key";
 
 const RANDOM_CHARSET: &str = "abcdefghijklmnopqrstuvwxyz";
 pub struct ConsistentProxy {
@@ -27,7 +30,25 @@ impl Service<Request<Body>> for ConsistentProxy {
     }
 
     fn call(&mut self, orig_req: Request<Body>) -> Self::Future {
-        let orig_headers = orig_req.headers();
+        let (parts, body) = orig_req.into_parts();
+        let client = self.create_client();
+        let req = self.create_request(parts, body);
+        Box::pin(async move { client.request(req).await })
+    }
+}
+
+impl ConsistentProxy {
+    fn create_client(&self) -> Client<HttpConnector> {
+        Client::builder()
+            .pool_idle_timeout(Duration::from_secs(30))
+            .http2_only(true)
+            .build_http()
+    }
+
+    fn create_request(&self, parts: Parts, body: Body) -> Request<Body> {
+        let orig_headers = parts.headers;
+        let orig_uri = parts.uri;
+
         let host = match orig_headers.get(REQUEST_KEY) {
             Some(k) => {
                 let key = k.to_str().unwrap();
@@ -40,34 +61,16 @@ impl Service<Request<Body>> for ConsistentProxy {
                 format!("{}:{}", node.host, node.port)
             }
         };
-        let client = Client::builder()
-            .pool_idle_timeout(Duration::from_secs(30))
-            .http2_only(true)
-            .build_http();
-
-        let uri = format!(
-            "http://{}{}",
-            host,
-            orig_req.uri().path_and_query().unwrap()
-        );
-        println!("uri is : {}", uri);
-
+        let uri = format!("http://{}{}", host, orig_uri.path_and_query().unwrap());
+        println!("{:?}", uri);
         let mut builder = hyper::Request::builder().version(Version::HTTP_2).uri(uri);
         for header in orig_headers {
-            builder = builder.header(header.0, header.1.to_owned());
+            builder = builder.header(header.0.unwrap(), header.1.to_owned());
         }
-
-        Box::pin(async move {
-            let body_bytes = hyper::body::to_bytes(orig_req.into_body()).await;
-            let req = builder
-                .method("POST")
-                .body(Body::from(body_bytes.unwrap().clone()))
-                .unwrap();
-            client.request(req).await
-        })
+        let req = builder.method("POST").body(body).unwrap();
+        req
     }
 }
-
 pub struct MakeSvc {
     pub c: Arc<Consistent>,
 }
